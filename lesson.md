@@ -52,7 +52,7 @@ devops-demo/
 Your Dockerfile from Lesson 2 should look like this:
 
 ```dockerfile
-FROM eclipse-temurin:17-jdk-alpine
+FROM eclipse-temurin:21-jdk-alpine
 WORKDIR /app
 ENV PORT=8080
 COPY target/*.jar app.jar
@@ -647,7 +647,7 @@ PostgreSQL uses a **ready-made image** from Docker Hub, so it appears directly i
 ### In Dockerfile
 
 ```dockerfile
-FROM eclipse-temurin:17-jdk-alpine
+FROM eclipse-temurin:21-jdk-alpine
 WORKDIR /app
 ENV PORT=8080
 COPY target/*.jar app.jar
@@ -655,7 +655,7 @@ EXPOSE 8080
 CMD ["java", "-jar", "app.jar"]
 ```
 
-The JDK is defined **inside the Dockerfile** (FROM eclipse-temurin:17-jdk-alpine), so it doesn't appear in Docker Compose.
+The JDK is defined **inside the Dockerfile** (FROM eclipse-temurin:21-jdk-alpine), so it doesn't appear in Docker Compose.
 
 ### Key Difference
 
@@ -674,7 +674,7 @@ docker-compose.yml (orchestration layer)
     │       │
     │       └── Dockerfile (image definition)
     │               │
-    │               └── FROM eclipse-temurin:17-jdk-alpine (base image with JDK)
+    │               └── FROM eclipse-temurin:21-jdk-alpine (base image with JDK)
     │
     └── db service → image: postgres:15 (ready-made image)
 ```
@@ -704,7 +704,7 @@ Here's what happens when you run `docker compose up -d`:
 
 5. Build Application Image
    └─> Reads your Dockerfile
-   └─> Uses eclipse-temurin:17-jdk-alpine as base
+   └─> Uses eclipse-temurin:21-jdk-alpine as base
    └─> Copies JAR file into image
    └─> Creates devops-demo-app image
 
