@@ -38,8 +38,28 @@ docker ps -q | xargs docker stop
 # Verify nothing is running
 docker ps
 ```
+### 4. Important: Stop WSL PostgreSQL (If Installed)
 
-### 4. Project Structure
+If you installed PostgreSQL on WSL for Java/Spring Boot lessons, stop it to avoid port 5432 conflict:
+
+**For WSL users:**
+```bash
+sudo service postgresql stop
+```
+
+**For Mac users (Homebrew):**
+```bash
+brew services stop postgresql@16
+```
+
+**Verify PostgreSQL is stopped:**
+```bash
+# Should show no output or "not running"
+sudo service postgresql status
+```
+
+
+### 5. Project Structure
 
 ```
 devops-demo/
@@ -57,7 +77,7 @@ devops-demo/
  └── docker-compose.yml (you will create this)
 ```
 
-### 5. Verify Your Dockerfile
+### 6. Verify Your Dockerfile
 
 Your Dockerfile from Lesson 4.4 should look like this:
 
@@ -70,7 +90,7 @@ EXPOSE 8080
 CMD ["java", "-jar", "app.jar"]
 ```
 
-### 6. Verify Your .dockerignore File
+### 7. Verify Your .dockerignore File
 
 From Lesson 4.4, your `.dockerignore` should look like this (allows JAR file):
 
@@ -336,6 +356,7 @@ ls -lh target/*.jar
 ## Part 6: Create docker-compose.yml (30 minutes)
 
 ### Step 1: Create the File
+
 
 Create `docker-compose.yml` in project root (same level as `pom.xml`):
 
