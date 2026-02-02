@@ -40,8 +40,6 @@ docker ps
 ```
 ### 4. Important: Stop WSL PostgreSQL (If Installed)
 
-If you installed PostgreSQL on WSL for Java/Spring Boot lessons, stop it to avoid port 5432 conflict:
-
 **For WSL users:**
 ```bash
 sudo service postgresql stop
@@ -53,9 +51,17 @@ brew services stop postgresql@16
 ```
 
 **Verify PostgreSQL is stopped:**
+
+**For WSL:**
 ```bash
-# Should show no output or "not running"
 sudo service postgresql status
+# Should show "down" or "not running"
+```
+
+**For Mac:**
+```bash
+brew services info postgresql@16
+# Should show "stopped"
 ```
 
 
