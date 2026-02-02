@@ -1,12 +1,4 @@
-# Lesson: Cloud-Native Applications with Docker Compose (Running Multiple Containers)
-
----
-
-## Lesson Overview
-
-In this lesson, you will learn to run **multiple containers together** using **Docker Compose**. You will run your Spring Boot application with a PostgreSQL database to understand multi-container orchestration.
-
----
+# Lesson 4.6: Cloud-Native Applications with Docker Compose.
 
 ## Learning Objectives
 
@@ -23,14 +15,31 @@ By the end of this lesson, you will be able to:
 
 Before starting this lesson, ensure you have:
 
-### 1. Your Spring Boot DevOps Demo Project Ready
+### 1. Completed Previous Lessons
+
+- Lesson 4.4: Docker Local (Dockerfile, building images)
+- Lesson 4.5: Docker Hub (pushing/pulling images)
+
+### 2. Your Spring Boot DevOps Demo Project Ready
 
 Your project should have:
-- A working Dockerfile (from Lesson 2)
+- A working Dockerfile (from Lesson 4.4)
 - A `/hello` endpoint that returns "DevOps demo application is running!"
 - Successfully builds with Maven
 
-### 2. Project Structure
+### 3. Important: Stop Any Running Containers
+
+Stop containers from previous lessons to avoid port conflicts:
+
+```bash
+# Stop all running containers
+docker ps -q | xargs docker stop
+
+# Verify nothing is running
+docker ps
+```
+
+### 4. Project Structure
 
 ```
 devops-demo/
@@ -43,13 +52,14 @@ devops-demo/
  │       └── resources/
  │           └── application.properties
  ├── Dockerfile
+ ├── .dockerignore
  ├── pom.xml
  └── docker-compose.yml (you will create this)
 ```
 
-### 3. Verify Your Dockerfile
+### 5. Verify Your Dockerfile
 
-Your Dockerfile from Lesson 2 should look like this:
+Your Dockerfile from Lesson 4.4 should look like this:
 
 ```dockerfile
 FROM eclipse-temurin:21-jdk-alpine
@@ -60,44 +70,59 @@ EXPOSE 8080
 CMD ["java", "-jar", "app.jar"]
 ```
 
-### 4. Important: Check Your .dockerignore File
+### 6. Verify Your .dockerignore File
 
-If you have a `.dockerignore` file from Lesson 2, **verify it does NOT block the JAR file**.
-
-Your `.dockerignore` should look like this:
+From Lesson 4.4, your `.dockerignore` should look like this (allows JAR file):
 
 ```
+target/classes/
+target/test-classes/
+target/generated-sources/
+target/maven-status/
 .git
 .gitignore
 .idea/
 .vscode/
-target/classes/
-target/test-classes/
 ```
 
-**If you see `target/` (without subdirectories), remove it.** We need the JAR file for Docker to copy.
+**Important:** Do NOT use `target/` alone - this blocks the JAR file!
 
 ---
 
-## Why Do We Need Docker Compose?
+## Part 1: Why Docker Compose? (20 minutes)
 
-Until now, you have used `docker run` to start a single container. Real applications usually need multiple services:
+### The Problem with Multiple Containers
 
-- a backend application (Spring Boot)
-- a database (PostgreSQL, MySQL, etc.)
+Until now, you used `docker run` to start a single container. Real applications need multiple services:
 
-Managing these containers one by one becomes difficult:
-- you must start them in the correct order
-- you must connect them to the same network
-- you must pass environment variables correctly
-- you must remember many commands
+- Backend application (Spring Boot)
+- Database (PostgreSQL, MySQL)
+- Cache (Redis)
+- Message queue (RabbitMQ)
 
-**Docker Compose solves this** by defining the entire system in **one file** and starting everything with **one command**.
+Managing these manually becomes difficult:
+
+```bash
+# Traditional approach (tedious!)
+docker network create demo-network
+docker run -d --network demo-network --name db postgres:15 ...
+docker run -d --network demo-network --name app myapp:latest ...
+# Remember all these commands!
+# Repeat every time!
+```
+
+### Docker Compose Solution
+
+**One file + One command:**
+
+```bash
+docker compose up -d
+```
 
 ### Real-World Scenario
 
+**Manual Approach:**
 ```
-Traditional Approach (Manual):
 1. Create network: docker network create demo-network
 2. Start database: docker run -d --network demo-network postgres...
 3. Wait for database to be ready
@@ -105,48 +130,37 @@ Traditional Approach (Manual):
 5. Configure environment variables for both
 6. Troubleshoot networking issues
 7. Remember all these commands for next time
+```
 
-Docker Compose Approach:
+**Docker Compose Approach:**
+```
 1. Create docker-compose.yml
 2. Run: docker compose up -d
 3. Done!
 ```
 
----
+### What Docker Compose Provides
 
-## What Is Docker Compose?
-
-Docker Compose allows you to:
-- define multiple containers (services)
-- describe how they connect to each other
-- run them together as one application
-
-Everything is defined in a file called `docker-compose.yml`.
-
-When you run Docker Compose:
-- Docker creates a private network
-- containers can talk to each other using service names
-- services start together in a controlled way
+- ✅ Define multiple containers in one file
+- ✅ Describe how they connect
+- ✅ Start everything with one command
+- ✅ Automatic networking
+- ✅ Easy to share and reproduce
 
 ---
 
-## Our Demo Scenario
+## Part 2: Our Demo Scenario (10 minutes)
 
 You will run **two containers**:
 
 1. **Spring Boot application**
-   - same DevOps demo project
-   - exposes `/hello` endpoint
+   - DevOps demo project
+   - Exposes `/hello` endpoint
 2. **PostgreSQL database**
-   - runs as a separate container
-   - used only to demonstrate dependency
+   - Runs as a separate container
+   - Demonstrates multi-container orchestration
 
-There will be:
-- no database entities
-- no repositories
-- no CRUD APIs
-
-The database exists to show **multi-container orchestration**, not data access.
+**Important:** No database entities or CRUD APIs yet. Database exists to show orchestration.
 
 ### Architecture Overview
 
@@ -168,11 +182,13 @@ The database exists to show **multi-container orchestration**, not data access.
 
 ---
 
-## Step 1: Add Required Dependencies
+## Part 3: Add Dependencies (15 minutes)
 
-Even though we won't use the database for data operations yet, Spring Boot needs the proper drivers and libraries to establish a connection.
+Even though we won't use the database for data operations yet, Spring Boot needs drivers to establish connection.
 
-Open your `pom.xml` and add these dependencies inside the `<dependencies>` section:
+### Step 1: Add PostgreSQL and JPA Dependencies
+
+Open `pom.xml` and add these inside `<dependencies>`:
 
 ```xml
 <!-- PostgreSQL Driver -->
@@ -189,20 +205,21 @@ Open your `pom.xml` and add these dependencies inside the `<dependencies>` secti
 </dependency>
 ```
 
-### Why do we need these?
+### Why These Dependencies?
 
 **PostgreSQL Driver:**
-- Allows Java applications to connect to PostgreSQL databases
+- Allows Java to connect to PostgreSQL databases
 - Without it, Spring Boot cannot communicate with PostgreSQL
 
 **Spring Data JPA:**
 - Provides database abstraction layer
-- Required for the JPA configuration properties to work
-- Even though we have no entities yet, having this dependency prevents configuration errors
+- Required for JPA configuration properties
+- Even without entities, prevents configuration errors
+- **Note:** We'll create entities and repositories in Lesson 4.11
 
 ### Verify Dependencies
 
-After adding these dependencies, your `<dependencies>` section should look similar to this:
+Your `<dependencies>` section should include:
 
 ```xml
 <dependencies>
@@ -221,14 +238,22 @@ After adding these dependencies, your `<dependencies>` section should look simil
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-data-jpa</artifactId>
     </dependency>
+    
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-test</artifactId>
+        <scope>test</scope>
+    </dependency>
 </dependencies>
 ```
 
 ---
 
-## Step 2: Configure Application Properties
+## Part 4: Configure Application Properties (15 minutes)
 
-Open `src/main/resources/application.properties` and add the following configuration:
+### Step 1: Update application.properties
+
+Open `src/main/resources/application.properties` and add:
 
 ```properties
 # Server configuration
@@ -253,51 +278,48 @@ spring.jpa.show-sql=false
 spring.datasource.url=${SPRING_DATASOURCE_URL}
 ```
 
-This syntax means:
-- Read the value from the `SPRING_DATASOURCE_URL` environment variable
-- When running with Docker Compose, these variables are set automatically
-- If the variable is not set, the application will fail to start (this ensures we only run with Docker Compose)
+- Reads value from environment variable
+- Docker Compose sets these automatically
+- If missing, application fails (ensures we use Docker Compose)
 
 **JPA Configuration:**
 
 ```properties
 spring.jpa.hibernate.ddl-auto=none
 ```
-- Tells Hibernate **not** to create, update, or validate database schema
-- Essential because we have no database entities yet
+- Tells Hibernate NOT to create/update schema
+- Essential because we have no entities yet
 - Prevents startup errors
 
 ```properties
 spring.jpa.database-platform=org.hibernate.dialect.PostgreSQLDialect
 ```
 - Explicitly tells Hibernate we're using PostgreSQL
-- Helps with SQL optimization
 
 ```properties
 spring.jpa.show-sql=false
 ```
-- Disables SQL logging in console
-- Keeps logs clean during this lesson
+- Disables SQL logging
+- Keeps logs clean
 
 ---
 
-## Step 3: Build the Project
+## Part 5: Build the Project (10 minutes)
 
-Before creating Docker images, you must build the Spring Boot JAR file.
+Before creating Docker images, build the JAR file.
 
-Run this command in your project directory:
+### Step 1: Build
 
 ```bash
 mvn clean package -DskipTests
 ```
 
-### Understanding the Command
-
+**Understanding the command:**
 - `clean` - removes previous build artifacts
-- `package` - compiles code and creates JAR file
-- `-DskipTests` - skips running tests to speed up build
+- `package` - compiles code and creates JAR
+- `-DskipTests` - skips tests to speed up build
 
-### Verify the Build
+### Step 2: Verify the Build
 
 ```bash
 ls -lh target/*.jar
@@ -311,9 +333,11 @@ ls -lh target/*.jar
 
 ---
 
-## Step 4: Create docker-compose.yml
+## Part 6: Create docker-compose.yml (30 minutes)
 
-Create a file named `docker-compose.yml` in the project root (same level as `pom.xml`).
+### Step 1: Create the File
+
+Create `docker-compose.yml` in project root (same level as `pom.xml`):
 
 ```yaml
 version: "3.9"
@@ -347,38 +371,25 @@ volumes:
   postgres-data:
 ```
 
----
+### Step 2: Understand Each Section
 
-## Step 5: Understand the Compose File
-
-Let's break down each section:
-
-### Version Declaration
-
+**Version Declaration:**
 ```yaml
 version: "3.9"
 ```
+Specifies Docker Compose file format version.
 
-Specifies the Docker Compose file format version.
-
-### Services Section
-
+**App Service:**
 ```yaml
 services:
   app:
-    build: .              # Build image from Dockerfile in current directory
+    build: .              # Build from Dockerfile in current directory
     container_name: devops-demo-app
     ports:
-      - "8080:8080"       # Map host port 8080 to container port 8080
+      - "8080:8080"       # Map host:container ports
 ```
 
-**Key Points:**
-- `build: .` tells Docker Compose to use your existing Dockerfile
-- Container name is set explicitly for easy identification
-- Port mapping allows access from your host machine
-
-### Environment Variables
-
+**Environment Variables:**
 ```yaml
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/demo_db
@@ -386,59 +397,42 @@ services:
       SPRING_DATASOURCE_PASSWORD: demo_password
 ```
 
-**Critical Detail:**
+**Critical:** Notice `jdbc:postgresql://db:5432/demo_db`
+- `db` is the service name of PostgreSQL container
+- Docker Compose creates network where services find each other by name
+- From inside app container, `db` resolves to database container IP
 
-Notice `jdbc:postgresql://db:5432/demo_db`:
-- `db` is the **service name** of the PostgreSQL container (defined below)
-- Docker Compose creates a network where services can find each other by name
-- This replaces `localhost` when containers talk to each other
-- From inside the app container, `db` resolves to the database container's IP
-
-### Service Name Resolution
-
+**Service Name Resolution:**
 ```
 Inside app container:
   ping db → resolves to PostgreSQL container
-  ping localhost → resolves to app container itself
   
 From your computer:
   localhost:8080 → reaches app container
   localhost:5432 → reaches database container
 ```
 
-### Dependency Management
-
+**Dependency Management:**
 ```yaml
     depends_on:
       - db
 ```
+Ensures database starts before application.
 
-**What this does:**
-- Ensures database starts **before** the application
-- However, it only waits for the container to start, not for PostgreSQL to be ready
-- Spring Boot will retry connection automatically, so this usually works fine
-
-### Database Service
-
+**Database Service:**
 ```yaml
   db:
-    image: postgres:15    # Use official PostgreSQL 15 image from Docker Hub
+    image: postgres:15    # Official PostgreSQL image
     container_name: devops-demo-db
     ports:
       - "5432:5432"
     environment:
       POSTGRES_DB: demo_db          # Database name to create
-      POSTGRES_USER: demo_user      # Database user to create
-      POSTGRES_PASSWORD: demo_password  # Password for the user
+      POSTGRES_USER: demo_user      # User to create
+      POSTGRES_PASSWORD: demo_password  # User password
 ```
 
-**Key Points:**
-- Uses official PostgreSQL image (no need to build)
-- Environment variables are PostgreSQL-specific
-- These must match the Spring Boot datasource configuration
-
-### Data Persistence
-
+**Data Persistence:**
 ```yaml
     volumes:
       - postgres-data:/var/lib/postgresql/data
@@ -447,35 +441,34 @@ volumes:
   postgres-data:
 ```
 
-**Why volumes are important:**
-- Without volumes, database data is lost when container stops
-- Named volume `postgres-data` persists data on the host machine
-- Data survives container restarts, rebuilds, and even `docker compose down`
+**Why volumes matter:**
+- Without volumes, data lost when container stops
+- Named volume persists data on host
+- Survives container restarts and rebuilds
 - Only removed with `docker compose down -v`
 
 ---
 
-## Step 6: Run the Application with Docker Compose
+## Part 7: Run with Docker Compose (20 minutes)
 
-Now start both containers with a single command:
+### Step 1: Start All Services
 
 ```bash
 docker compose up -d
 ```
 
-### Understanding the Command
-
+**Understanding the command:**
 - `up` - creates and starts containers
 - `-d` - detached mode (runs in background)
 
-### What Happens When You Run This?
+### What Happens?
 
 ```
 1. Docker Compose reads docker-compose.yml
-2. Creates a network: devops-demo_default
-3. Pulls postgres:15 image (if not present locally)
+2. Creates network: devops-demo_default
+3. Pulls postgres:15 image (if not present)
 4. Starts PostgreSQL container
-5. Builds Spring Boot image from your Dockerfile
+5. Builds Spring Boot image from Dockerfile
 6. Starts Spring Boot container
 7. Application connects to database using service name "db"
 ```
@@ -489,17 +482,13 @@ docker compose up -d
  ✔ Container devops-demo-app          Started    1.2s
 ```
 
----
-
-## Step 7: Verify Containers Are Running
-
-Check the status of your containers:
+### Step 2: Verify Containers Running
 
 ```bash
 docker compose ps
 ```
 
-### Expected Output
+**Expected output:**
 
 ```
 NAME                IMAGE               COMMAND                  STATUS              PORTS
@@ -507,32 +496,28 @@ devops-demo-app     devops-demo-app     "java -jar app.jar"      Up 10 seconds  
 devops-demo-db      postgres:15         "docker-entrypoint.s…"   Up 15 seconds       0.0.0.0:5432->5432/tcp
 ```
 
-### What to Look For
-
-- **STATUS** should be `Up` for both containers
-- **PORTS** shows the port mappings
-- If status shows `Exited` or `Restarting`, check logs (next step)
+**What to look for:**
+- STATUS should be `Up` for both
+- If `Exited` or `Restarting`, check logs
 
 ---
 
-## Step 8: Check Container Logs
+## Part 8: Check Logs and Test (20 minutes)
 
-View logs to ensure everything started correctly:
-
-### Application Logs
+### Step 1: View Application Logs
 
 ```bash
 docker compose logs app
 ```
 
-**Look for these success indicators:**
+**Look for success indicators:**
 
 ```
-Started DevopsDemoApplication in 3.456 seconds (process running for 4.123)
+Started DevopsDemoApplication in 3.456 seconds
 Tomcat started on port 8080
 ```
 
-### Database Logs
+### Step 2: View Database Logs
 
 ```bash
 docker compose logs db
@@ -544,257 +529,139 @@ docker compose logs db
 database system is ready to accept connections
 ```
 
-### Follow Logs in Real-Time
+### Step 3: Follow Logs in Real-Time
 
 ```bash
 docker compose logs -f app
 ```
 
-**What this does:**
-- `-f` flag means "follow" (like `tail -f`)
-- Shows new log lines as they appear
-- Useful for debugging
-- Press `Ctrl+C` to stop following (doesn't stop containers)
+- `-f` flag means "follow"
+- Press `Ctrl+C` to stop (doesn't stop containers)
 
-### View Logs for All Services
+### Step 4: Test the Application
 
-```bash
-docker compose logs
-```
-
-Shows logs for both app and database.
-
----
-
-## Step 9: Test the Application Endpoint
-
-Verify the application is working correctly.
-
-### Using a Web Browser
-
-Open your browser and navigate to:
-
+**Using browser:**
 ```
 http://localhost:8080/hello
 ```
 
-### Using curl
-
+**Using curl:**
 ```bash
 curl http://localhost:8080/hello
 ```
 
-### Expected Response
-
+**Expected response:**
 ```
 DevOps demo application is running!
 ```
 
-### What This Proves
-
-- ✅ Spring Boot application is running
-- ✅ Application is accessible from your host machine
-- ✅ Port mapping is working correctly
-- ✅ Application started successfully with database connection configured
+**What this proves:**
+- ✅ Spring Boot running
+- ✅ Accessible from host
+- ✅ Port mapping works
+- ✅ Database connection configured
 
 ---
 
-## Important Clarification About the Database
+## Part 9: Important Clarification (10 minutes)
 
-**The database is running, but no API uses it yet.**
+### The Database is Running But Not Used Yet
 
-This is intentional and mirrors real-world workflows:
+**This is intentional and mirrors real-world workflows:**
 
-### Why This Approach?
+1. **Infrastructure First:** Set up database infrastructure
+2. **Verify Connection:** Ensure application can connect
+3. **Add Features Later:** Implement entities and repositories in future lessons
 
-1. **Infrastructure First**: Set up the database infrastructure
-2. **Verify Connection**: Ensure the application can connect
-3. **Add Features Later**: Implement database entities and repositories in future lessons
+### What's Happening?
 
-### What's Happening Behind the Scenes?
-
-- Spring Boot creates a database connection pool
-- Connection is established to PostgreSQL
-- No queries are executed because there are no entities
-- This proves the multi-container setup works
+- Spring Boot creates database connection pool
+- Connection established to PostgreSQL
+- No queries executed (no entities yet)
+- Proves multi-container setup works
 
 ### Real-World Parallel
 
-This is similar to DevOps practices:
+DevOps practice:
 - Set up infrastructure (databases, networks, services)
 - Verify connectivity and configuration
-- Then add application features incrementally
+- Add application features incrementally
+
+**Note:** In Lesson 4.11, you'll add database entities, repositories, and CRUD APIs.
 
 ---
 
-## How Containers Start and Why You Do Not See a JDK Image
-
-You may wonder why PostgreSQL appears in Docker Compose, but the JDK does not.
-
-### In docker-compose.yml
-
-```yaml
-services:
-  app:
-    build: .              # References Dockerfile
-
-  db:
-    image: postgres:15    # Uses ready-made image
-```
-
-PostgreSQL uses a **ready-made image** from Docker Hub, so it appears directly in docker-compose.yml.
-
-### In Dockerfile
-
-```dockerfile
-FROM eclipse-temurin:21-jdk-alpine
-WORKDIR /app
-ENV PORT=8080
-COPY target/*.jar app.jar
-EXPOSE 8080
-CMD ["java", "-jar", "app.jar"]
-```
-
-The JDK is defined **inside the Dockerfile** (FROM eclipse-temurin:21-jdk-alpine), so it doesn't appear in Docker Compose.
-
-### Key Difference
-
-| Aspect | Dockerfile | Docker Compose |
-|--------|-----------|----------------|
-| Purpose | Defines **what is inside** a container | Defines **how containers work together** |
-| Contains | Base image, application code, dependencies | Service definitions, networks, volumes |
-| Used For | Building images | Running multi-container applications |
-
-### The Relationship
-
-```
-docker-compose.yml (orchestration layer)
-    │
-    ├── app service → build: .
-    │       │
-    │       └── Dockerfile (image definition)
-    │               │
-    │               └── FROM eclipse-temurin:21-jdk-alpine (base image with JDK)
-    │
-    └── db service → image: postgres:15 (ready-made image)
-```
-
----
-
-## Container Startup Flow
-
-Here's what happens when you run `docker compose up -d`:
-
-### Step-by-Step Process
-
-```
-1. Parse Configuration
-   └─> Docker Compose reads docker-compose.yml
-
-2. Network Setup
-   └─> Creates network: devops-demo_default
-
-3. Pull Images
-   └─> Pulls postgres:15 from Docker Hub (if not present)
-
-4. Start Database
-   └─> Starts PostgreSQL container
-   └─> Initializes database with POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD
-   └─> Database becomes ready to accept connections
-
-5. Build Application Image
-   └─> Reads your Dockerfile
-   └─> Uses eclipse-temurin:21-jdk-alpine as base
-   └─> Copies JAR file into image
-   └─> Creates devops-demo-app image
-
-6. Start Application
-   └─> Waits for database due to depends_on
-   └─> Starts Spring Boot container
-   └─> Spring Boot reads environment variables
-   └─> Connects to database using service name "db"
-   └─> Application becomes ready
-
-7. Final State
-   └─> Both containers running
-   └─> Connected via Docker network
-   └─> Accessible from localhost
-```
-
----
-
-## Useful Docker Compose Commands
-
-Here are essential commands for managing your multi-container application:
+## Part 10: Docker Compose Commands (15 minutes)
 
 ### Starting and Stopping
 
 ```bash
-# Start all services (build if needed)
+# Start all services
 docker compose up -d
 
-# Start services without rebuilding images
+# Start without rebuilding
 docker compose start
 
-# Stop all services (containers remain)
+# Stop all services
 docker compose stop
 
 # Restart services
 docker compose restart
 
-# Restart a specific service
+# Restart specific service
 docker compose restart app
 ```
 
-### Rebuilding and Cleaning
+### Rebuilding
 
 ```bash
-# Rebuild images and restart
+# Rebuild and restart
 docker compose up -d --build
 
-# Force rebuild (ignore cache)
+# Force rebuild (no cache)
 docker compose build --no-cache
+```
 
+### Cleaning Up
+
+```bash
 # Stop and remove containers, networks
 docker compose down
 
-# Stop and remove containers, networks, and volumes
+# Also remove volumes (deletes data!)
 docker compose down -v
 ```
 
-### Monitoring and Debugging
+### Monitoring
 
 ```bash
 # View running services
 docker compose ps
 
-# View all services (including stopped)
+# View all services
 docker compose ps -a
 
 # View logs
 docker compose logs
 
-# View logs for specific service
+# View specific service logs
 docker compose logs app
 docker compose logs db
 
-# Follow logs in real-time
+# Follow logs
 docker compose logs -f
 
-# View last 50 lines
+# Last 50 lines
 docker compose logs --tail=50 app
-
-# View resource usage
-docker compose top
 ```
 
 ### Executing Commands
 
 ```bash
-# Open bash shell in running container
+# Open shell in container
 docker compose exec app sh
 
-# Run a command in running container
+# Run command in container
 docker compose exec app ls -la
 
 # Connect to PostgreSQL
@@ -803,22 +670,20 @@ docker compose exec db psql -U demo_user -d demo_db
 
 ---
 
-## Activity: Update Database Configuration
+## Part 11: Activity - Update Database Configuration (20 minutes)
 
-Practice modifying the Docker Compose configuration:
+Practice modifying Docker Compose configuration.
 
 ### Task
 
-1. Change the database name from `demo_db` to `demo_db_v2`
-2. Update the application environment variable to match
-3. Restart the containers
+1. Change database name from `demo_db` to `demo_db_v2`
+2. Update application environment variable
+3. Restart containers
 4. Verify everything works
 
-### Step-by-Step Instructions
+### Instructions
 
 **1. Edit docker-compose.yml**
-
-Change these lines:
 
 ```yaml
 services:
@@ -831,24 +696,21 @@ services:
       POSTGRES_DB: demo_db_v2  # Changed
 ```
 
-**2. Stop and Remove Old Containers**
+**2. Stop and Remove**
 
 ```bash
 docker compose down
 ```
 
-**Why `down` instead of `stop`?**
-- `stop` only stops containers
-- `down` stops and removes containers
-- This ensures a clean restart with new configuration
-
-**3. Start with New Configuration**
+**3. Rebuild and Start**
 
 ```bash
-docker compose up -d
+docker compose up -d --build
 ```
 
-**4. Verify Containers Are Running**
+**Important:** Use `--build` flag to rebuild app image with changes!
+
+**4. Verify Running**
 
 ```bash
 docker compose ps
@@ -856,21 +718,21 @@ docker compose ps
 
 Both should show `Up` status.
 
-**5. Check Application Logs**
+**5. Check Logs**
 
 ```bash
 docker compose logs app | grep "Started"
 ```
 
-Look for: `Started DevopsDemoApplication in X.XXX seconds`
+Look for: `Started DevopsDemoApplication`
 
-**6. Test the Endpoint**
+**6. Test Endpoint**
 
 ```bash
 curl http://localhost:8080/hello
 ```
 
-**Expected:** `DevOps demo application is running!`
+Expected: `DevOps demo application is running!`
 
 **7. Verify Database Name**
 
@@ -878,398 +740,210 @@ curl http://localhost:8080/hello
 docker compose exec db psql -U demo_user -l
 ```
 
-You should see `demo_db_v2` in the list of databases.
+Should see `demo_db_v2` in list.
 
-### What Did You Learn?
+### What You Learned
 
-- ✅ How to modify Docker Compose configuration
-- ✅ How to safely restart services with new settings
-- ✅ How to verify configuration changes
-- ✅ The importance of keeping environment variables synchronized
+- ✅ Modifying Docker Compose configuration
+- ✅ Rebuilding images after changes
+- ✅ Verifying configuration changes
+- ✅ Keeping environment variables synchronized
 
 ---
 
-## Troubleshooting Common Issues
+## Part 12: Understanding Dockerfile vs Docker Compose (10 minutes)
+
+### Why JDK Doesn't Appear in docker-compose.yml
+
+**In docker-compose.yml:**
+```yaml
+services:
+  app:
+    build: .              # References Dockerfile
+
+  db:
+    image: postgres:15    # Uses ready-made image
+```
+
+PostgreSQL uses ready-made image, so it appears directly.
+
+**In Dockerfile:**
+```dockerfile
+FROM eclipse-temurin:21-jdk-alpine
+```
+
+JDK is defined inside Dockerfile, so doesn't appear in Compose.
+
+### Key Difference
+
+| Aspect | Dockerfile | Docker Compose |
+|--------|-----------|----------------|
+| Purpose | What's **inside** container | How containers **work together** |
+| Contains | Base image, code, dependencies | Services, networks, volumes |
+| Scope | Single image | Multiple containers |
+
+### The Relationship
+
+```
+docker-compose.yml (orchestration)
+    │
+    ├── app service → build: .
+    │       │
+    │       └── Dockerfile
+    │               └── FROM eclipse-temurin:21-jdk-alpine
+    │
+    └── db service → image: postgres:15
+```
+
+---
+
+## Troubleshooting
 
 ### Issue 1: "Failed to configure a DataSource"
 
-**Full Error Message:**
-
-```
-Failed to configure a DataSource: 'url' attribute is not specified
-```
-
-**Cause:**
-- PostgreSQL driver is missing from pom.xml
-- Or JPA dependency is missing
-- Or environment variables are not being passed correctly
+**Cause:** Missing PostgreSQL or JPA dependency
 
 **Solution:**
-
-1. Verify both dependencies are in pom.xml:
-
-```xml
-<dependency>
-    <groupId>org.postgresql</groupId>
-    <artifactId>postgresql</artifactId>
-    <scope>runtime</scope>
-</dependency>
-
-<dependency>
-    <groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-starter-data-jpa</artifactId>
-</dependency>
-```
-
-2. Rebuild the project:
-
-```bash
-mvn clean package -DskipTests
-```
-
-3. Rebuild and restart Docker Compose:
-
-```bash
-docker compose down
-docker compose up -d --build
-```
+1. Verify both dependencies in pom.xml
+2. Rebuild: `mvn clean package -DskipTests`
+3. Restart: `docker compose up -d --build`
 
 ---
 
-### Issue 2: "JAR file not found" during Docker build
+### Issue 2: "JAR file not found"
 
-**Full Error Message:**
-
-```
-COPY failed: file not found in build context or excluded by .dockerignore
-```
-
-**Cause:**
-- JAR file was not built
-- Or .dockerignore is excluding the target folder incorrectly
+**Cause:** JAR not built or .dockerignore blocking it
 
 **Solution:**
-
-1. Build the JAR:
-
-```bash
-mvn clean package -DskipTests
-```
-
-2. Verify JAR exists:
-
-```bash
-ls -lh target/*.jar
-```
-
-3. Check your Dockerfile uses the correct pattern:
-
-```dockerfile
-COPY target/*.jar app.jar
-```
-
-4. If you have a `.dockerignore` file, make sure it doesn't exclude the JAR:
-
-```
-# .dockerignore should NOT have:
-# target/
-
-# It's OK to have:
-.git
-.gitignore
-.idea/
-.vscode/
-target/classes/
-target/test-classes/
-```
-
-5. Rebuild Docker images:
-
-```bash
-docker compose up -d --build
-```
+1. Build: `mvn clean package -DskipTests`
+2. Verify: `ls -lh target/*.jar`
+3. Check .dockerignore allows JAR (use `target/classes/` not `target/`)
+4. Rebuild: `docker compose up -d --build`
 
 ---
 
 ### Issue 3: Port 8080 already in use
 
-**Full Error Message:**
-
-```
-Bind for 0.0.0.0:8080 failed: port is already allocated
-```
-
-**Cause:**
-- Another application is using port 8080
-- Previous container is still running
+**Cause:** Another application using port or old container running
 
 **Solution:**
 
-**Option 1:** Stop the conflicting application
-
-Check what's using the port:
-
-```bash
-# On macOS/Linux
-lsof -i :8080
-
-# On Windows
-netstat -ano | findstr :8080
-```
-
-Stop the application or container using that port.
-
-**Option 2:** Change the port in docker-compose.yml
-
-```yaml
-services:
-  app:
-    ports:
-      - "8081:8080"  # Use port 8081 on host instead
-```
-
-Then access: `http://localhost:8081/hello`
-
-**Option 3:** Stop all Docker containers
-
+**Option 1:** Stop old containers
 ```bash
 docker ps -q | xargs docker stop
+```
+
+**Option 2:** Change port in docker-compose.yml
+```yaml
+ports:
+  - "8081:8080"  # Use 8081 on host
 ```
 
 ---
 
 ### Issue 4: Database connection refused
 
-**Full Error Message:**
-
-```
-Connection to localhost:5432 refused
-```
-
-**Cause:**
-- Using `localhost` instead of service name `db`
-- Database container is not running
+**Cause:** Using `localhost` instead of service name `db`
 
 **Solution:**
-
-1. Verify you're using service name in docker-compose.yml:
-
+Verify docker-compose.yml uses:
 ```yaml
-environment:
-  SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/demo_db  # "db", not "localhost"
+SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/demo_db
 ```
 
-2. Check database is running:
-
-```bash
-docker compose ps
-```
-
-3. Check database logs:
-
-```bash
-docker compose logs db
-```
-
-Look for: `database system is ready to accept connections`
-
-4. If database failed to start, restart it:
-
-```bash
-docker compose restart db
-```
+Not `localhost`!
 
 ---
 
 ### Issue 5: Application keeps restarting
 
-**Symptoms:**
-
-```bash
-docker compose ps
-```
-
-Shows status: `Restarting (1) 10 seconds ago`
-
 **Diagnosis:**
-
-Check logs:
-
 ```bash
 docker compose logs app
 ```
 
-**Common Causes and Solutions:**
-
-**Cause 1: Missing dependency**
-
-Error: `ClassNotFoundException: org.postgresql.Driver`
-
-Solution: Add PostgreSQL driver to pom.xml and rebuild.
-
-**Cause 2: Database connection timeout**
-
-Error: `Connection refused` or `Connection timeout`
-
-Solution: 
-- Database may be slow to start
-- Wait 30 seconds and check again
-- Check database logs: `docker compose logs db`
-
-**Cause 3: Application.properties misconfiguration**
-
-Error: `Could not resolve placeholder 'SPRING_DATASOURCE_URL'`
-
-Solution: 
-- Verify environment variables are set in docker-compose.yml
-- Check spelling matches exactly: `SPRING_DATASOURCE_URL`
-
-**Cause 4: Wrong JAR filename**
-
-Error: `Error: Unable to access jarfile app.jar`
-
-Solution: 
-- Verify JAR was built: `ls target/*.jar`
-- Your Dockerfile uses `COPY target/*.jar app.jar` which should work
+**Common causes:**
+- Missing dependency → Add to pom.xml
+- Database not ready → Wait 30 seconds
+- Wrong environment variables → Check spelling
+- Wrong JAR filename → Verify build
 
 ---
 
-### Issue 6: "Cannot connect to Docker daemon"
+## Clean Up
 
-**Full Error Message:**
-
-```
-Cannot connect to the Docker daemon. Is the docker daemon running?
-```
-
-**Solution:**
-
-1. Start Docker Desktop (on Mac/Windows)
-2. Or start Docker service (on Linux):
-
-```bash
-sudo systemctl start docker
-```
-
----
-
-### Issue 7: Old data persists after changing configuration
-
-**Symptom:**
-- Changed database name but old data still appears
-
-**Cause:**
-- Docker volumes persist data
-- Old volume is still attached
-
-**Solution:**
-
-```bash
-# Stop containers and remove volumes
-docker compose down -v
-
-# Start with clean state
-docker compose up -d
-```
-
-**Warning:** This deletes all database data!
-
----
-
-## Clean Up Commands
-
-When you're done with the lesson:
-
-### Option 1: Stop Containers (Keep Everything)
+### Option 1: Stop (Keep Everything)
 
 ```bash
 docker compose stop
 ```
 
-**What this does:**
-- Stops containers
-- Keeps containers, images, volumes
-- Quick restart with `docker compose start`
+Keeps containers, images, volumes. Quick restart with `start`.
 
-### Option 2: Remove Containers (Keep Images and Volumes)
+### Option 2: Remove Containers
 
 ```bash
 docker compose down
 ```
 
-**What this does:**
-- Stops and removes containers
-- Removes network
-- Keeps images and volumes (data persists)
+Removes containers and network. Keeps images and volumes.
 
-### Option 3: Remove Everything Except Images
+### Option 3: Remove Everything
 
 ```bash
 docker compose down -v
 ```
 
-**What this does:**
-- Stops and removes containers
-- Removes network
-- Removes volumes (database data is deleted)
-- Keeps images (faster next startup)
+Removes containers, network, and volumes. Database data deleted!
 
 ### Option 4: Complete Cleanup
 
 ```bash
-# Remove containers and volumes
 docker compose down -v
-
-# Remove images
-docker rmi devops-demo-app
-docker rmi postgres:15
-
-# Remove all unused Docker resources
+docker rmi devops-demo-app postgres:15
 docker system prune -a
 ```
 
-**Warning:** `docker system prune -a` removes all unused Docker resources system-wide, not just for this project.
+**Warning:** `prune -a` removes ALL unused Docker resources system-wide!
 
 ---
 
-## Key Takeaways
+## Summary
 
-### 1. Docker Compose Orchestrates Multiple Containers
+### Key Takeaways
 
-- One YAML file defines the entire system
+**1. Docker Compose Orchestrates Multiple Containers**
+- One YAML file defines entire system
 - One command starts everything
-- Simplifies complex application architectures
+- Simplifies complex architectures
 
-### 2. Dockerfile vs Docker Compose
+**2. Dockerfile vs Docker Compose**
 
 | Aspect | Dockerfile | Docker Compose |
 |--------|-----------|----------------|
-| Defines | What is **inside** a container | How containers **work together** |
-| Contains | Base image, code, dependencies | Services, networks, volumes |
+| Defines | What's inside container | How containers work together |
 | Scope | Single image | Multiple containers |
-| Example | JDK, JAR file, runtime | App + Database + Network |
+| Example | JDK, JAR, runtime | App + Database + Network |
 
-### 3. Service Names Enable Container Communication
+**3. Service Names Enable Communication**
+- Containers use service names (not localhost)
+- `db` resolves to database container
+- Docker Compose creates private network
 
-- Containers use service names instead of localhost
-- `db` in the connection URL resolves to the database container
-- Docker Compose creates a private network automatically
-
-### 4. Environment Variables Configure Containers
-
+**4. Environment Variables Configure Containers**
 - Pass configuration without hardcoding
-- Different values for different environments
-- Can be overridden at runtime
+- Different values per environment
+- Override at runtime
 
-### 5. Data Persistence Requires Volumes
-
-- Without volumes, data is lost when containers stop
-- Named volumes survive container restarts
+**5. Volumes Persist Data**
+- Without volumes, data lost on stop
+- Named volumes survive restarts
 - Removed only with `-v` flag
 
-### 6. Separation of Infrastructure and Application
-
-- Set up infrastructure first (databases, networks)
+**6. Infrastructure-First Approach**
+- Set up infrastructure
 - Verify connectivity
 - Add features incrementally
-- Mirrors real-world DevOps practices
+- Mirrors real-world DevOps
+
+---
