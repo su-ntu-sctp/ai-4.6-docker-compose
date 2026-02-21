@@ -1,68 +1,108 @@
 # Assessment / Quiz
 
-## Overview
-- **Lesson:** [title / module.lesson]
-- **Format:** 10 questions (mix MCQ / True–False / Short Answer)
-- **Time:** ~10–15 minutes
-- **Scoring:** 1 point each (unless stated)
+### Q1 (True/False)
 
-## Questions
+Q1: Docker Compose allows you to define and run multiple containers using a single YAML configuration file?
 
-### Q1 (MCQ)
-[Question?]  
-A. [ ]  
-B. [ ]  
-C. [ ]  
-D. [ ]  
-**Answer:** [A/B/C/D] — [1-line reason]
+A - True
 
-### Q2 (MCQ)
-[Question?]  
-A. [ ]  
-B. [ ]  
-C. [ ]  
-D. [ ]  
-**Answer:** [A/B/C/D] — [1-line reason]
+B - False
 
-### Q3 (True/False)
-[Statement]  
-**Answer:** [True/False] — [1-line reason]
+---
 
-### Q4 (True/False)
-[Statement]  
-**Answer:** [True/False] — [1-line reason]
+Q2: What command is used to start all services defined in a docker-compose.yml file?
 
-### Q5 (Short Answer)
-[Prompt]  
-**Expected:** [1–2 key points]
+A - docker start
 
-### Q6 (Short Answer)
-[Prompt]  
-**Expected:** [1–2 key points]
+B - docker compose run
 
-### Q7 (MCQ)
-[Question?]  
-A. [ ]  
-B. [ ]  
-C. [ ]  
-D. [ ]  
-**Answer:** [A/B/C/D] — [1-line reason]
+C - docker compose up
 
-### Q8 (MCQ)
-[Question?]  
-A. [ ]  
-B. [ ]  
-C. [ ]  
-D. [ ]  
-**Answer:** [A/B/C/D] — [1-line reason]
+D - docker container start
 
-### Q9 (True/False)
-[Statement]  
-**Answer:** [True/False] — [1-line reason]
+---
 
-### Q10 (Short Answer)
-[Prompt]  
-**Expected:** [1–2 key points]
+Q3: In Docker Compose, containers can communicate with each other using service names instead of IP addresses?
+
+A - True
+
+B - False
+
+---
+
+Q4: What does the `depends_on` property do in a docker-compose.yml file?
+
+A - Deletes dependent services
+
+B - Defines the startup order of services
+
+C - Copies files between services
+
+D - Combines services into one container
+
+---
+
+Q5: Which command stops and removes containers, networks, and optionally volumes created by Docker Compose?
+
+A - docker compose stop
+
+B - docker compose down
+
+C - docker compose remove
+
+D - docker compose delete
+
+---
+
+Q6: Docker Compose volumes are used to persist data even when containers are stopped or removed?
+
+A - True
+
+B - False
+
+---
+
+Q7: In the JDBC URL `jdbc:postgresql://db:5432/demo_db`, what does `db` refer to?
+
+A - The database name
+
+B - The service name of the PostgreSQL container
+
+C - The hostname of your computer
+
+D - A Docker command
+
+---
+
+Q8: The `-d` flag in `docker compose up -d` means what?
+
+A - Delete old containers
+
+B - Debug mode
+
+C - Detached mode (run in background)
+
+D - Download images
+
+---
+
+Q9: Dockerfile defines what's inside a single container, while Docker Compose defines how multiple containers work together?
+
+A - True
+
+B - False
+
+---
+
+Q10: To view logs from all services in Docker Compose, which command would you use?
+
+A - docker logs
+
+B - docker compose show
+
+C - docker compose logs
+
+D - docker ps logs
 
 ## Notes
 - Keep each question atomic and aligned to the lesson objectives.
