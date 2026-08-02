@@ -449,6 +449,8 @@ From your computer:
 ```
 Ensures database starts before application.
 
+> **Note:** `depends_on` only guarantees the `db` container has *started* — not that PostgreSQL is *ready to accept connections* yet. This lesson works around that because no queries run yet (no entities). In production, teams typically add a healthcheck or retry logic to wait for true readiness.
+
 **Database Service:**
 ```yaml
   db:
@@ -518,7 +520,7 @@ Without running anything yet, read through the `docker-compose.yml` you just cre
 1. What port does the PostgreSQL database run on inside the container?
 2. What service name does the Spring Boot app use to reach the database — and why can't it use `localhost`?
 3. What happens to the database data if you run `docker compose down` without the `-v` flag?
-4. What does `depends_on: db` guarantee?
+4. What does `depends_on: db` guarantee? *(Instructor note: guarantees start order only, not readiness — see callout above.)*
 
 > Discuss your answers with a partner before moving on.
 
