@@ -764,7 +764,7 @@ services:
 **2. Stop and Remove**
 
 ```bash
-docker compose down --volume
+docker compose down --volumes
 ```
 
 **3. Rebuild and Start**
