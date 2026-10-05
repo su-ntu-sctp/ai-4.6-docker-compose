@@ -33,7 +33,7 @@ Stop containers from previous lessons to avoid port conflicts:
 
 ```bash
 # Stop all running containers
-docker stop $(docker ps -q) 2>/dev/null || true
+docker stop $(docker ps -q)
 
 # Verify nothing is running
 docker ps
@@ -764,13 +764,13 @@ services:
 **2. Stop and Remove**
 
 ```bash
-docker compose down
+docker compose down --volume
 ```
 
 **3. Rebuild and Start**
 
 ```bash
-docker compose up -d --build
+docker compose up --detach --build
 ```
 
 **Important:** Use `--build` flag to rebuild app image with changes!
@@ -849,7 +849,7 @@ Should see `demo_db_v2` in list.
 
 **Option 1:** Stop old containers
 ```bash
-docker stop $(docker ps -q) 2>/dev/null || true
+docker stop $(docker ps -q)
 ```
 
 **Option 2:** Change port in docker-compose.yml
